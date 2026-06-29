@@ -21,6 +21,30 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
+
+    const result = this.gameService.addPlayer(client.id);
+
+    client.join(result.roomId);
+
+    if (result.status === 'waiting') {
+      client.emit('matchmaking-status', {
+        status: 'waiting',
+        roomId: result.roomId,
+      });
+
+      console.log(`Player ${client.id} is waiting in ${result.roomId}`);
+      return;
+    }
+
+    for (const player of result.players) {
+      this.server.to(player.socketId).emit('matchmaking-status', {
+        status: 'started',
+        roomId: result.roomId,
+        role: player.role,
+      });
+    }
+
+    console.log(`Game started in ${result.roomId}`);
   }
 
   handleDisconnect(client: Socket) {

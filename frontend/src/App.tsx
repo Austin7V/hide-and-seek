@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { socket } from "./socket";
 
@@ -41,8 +41,11 @@ type GameState = {
 function App() {
   const [matchmakingStatus, setMatchmakingStatus] =
     useState<MatchmakingStatus | null>(null);
+
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
+
+  const gameStateRef = useRef<GameState | null>(null);
 
   useEffect(() => {
     function handleConnect() {
@@ -62,18 +65,23 @@ function App() {
     }
 
     function handleRoomsList(roomsList: RoomInfo[]) {
-      console.log("Roomslist:", roomsList);
+      console.log("Rooms list:", roomsList);
+
       setRooms(roomsList);
     }
 
     function handleGameState(newGameState: GameState) {
-      console.log("Game State:", newGameState);
+      console.log("Game state:", newGameState);
 
       setGameState(newGameState);
+
+      gameStateRef.current = newGameState;
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (!gameState || gameState.status !== "running") {
+      const currentGameState = gameStateRef.current;
+
+      if (!currentGameState || currentGameState.status !== "running") {
         return;
       }
 
@@ -94,28 +102,30 @@ function App() {
       }
     }
 
-    socket.on("rooms-list", handleRoomsList);
     socket.on("connect", handleConnect);
     socket.on("test-reply", handleTestReply);
     socket.on("matchmaking-status", handleMatchmakingStatus);
+    socket.on("rooms-list", handleRoomsList);
     socket.on("game-state", handleGameState);
 
     window.addEventListener("keydown", handleKeyDown);
 
-    socket.connect();
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     return () => {
-      socket.off("rooms-list", handleRoomsList);
       socket.off("connect", handleConnect);
       socket.off("test-reply", handleTestReply);
       socket.off("matchmaking-status", handleMatchmakingStatus);
+      socket.off("rooms-list", handleRoomsList);
       socket.off("game-state", handleGameState);
 
       window.removeEventListener("keydown", handleKeyDown);
 
       socket.disconnect();
     };
-  }, [gameState]);
+  }, []);
 
   return (
     <div>
@@ -137,16 +147,6 @@ function App() {
           <p>Your role: {matchmakingStatus.role}</p>
         </div>
       )}
-
-      <h2>Rooms</h2>
-      {rooms.length === 0 && <p>No rooms yet.</p>}
-      {rooms.map((room) => (
-        <div key={room.roomId}>
-          <p>
-            {room.roomId} — {room.status} — {room.playersCount}/2 players
-          </p>
-        </div>
-      ))}
 
       {gameState && (
         <div>
@@ -208,6 +208,18 @@ function App() {
           </div>
         </div>
       )}
+
+      <h2>Rooms</h2>
+
+      {rooms.length === 0 && <p>No rooms yet.</p>}
+
+      {rooms.map((room) => (
+        <div key={room.roomId}>
+          <p>
+            {room.roomId} — {room.status} — {room.playersCount}/2 players
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

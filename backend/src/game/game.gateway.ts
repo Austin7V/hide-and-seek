@@ -52,7 +52,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     }
 
+    const gameState = this.gameService.getGameState(result.roomId);
+    if (gameState) {
+      this.server.to(result.roomId).emit('game-state', gameState);
+    }
+
     console.log(`Game started in ${result.roomId}`);
+
+    this.broadcastRoomsList();
   }
 
   handleDisconnect(client: Socket) {

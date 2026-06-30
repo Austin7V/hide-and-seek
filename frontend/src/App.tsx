@@ -19,10 +19,30 @@ type RoomInfo = {
   playersCount: number;
 };
 
+type Position = {
+  row: number;
+  col: number;
+};
+
+type GameState = {
+  roomId: string;
+  status: "waiting" | "running" | "finished";
+  seeker: {
+    socketId: string;
+    position: Position;
+  };
+  hider: {
+    socketId: string;
+    position: Position;
+  };
+  timeRemaining: number;
+};
+
 function App() {
   const [matchmakingStatus, setMatchmakingStatus] =
     useState<MatchmakingStatus | null>(null);
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
     function handleConnect() {
@@ -46,10 +66,17 @@ function App() {
       setRooms(roomsList);
     }
 
+    function handleGameState(newGameState: GameState) {
+      console.log("Game State:", newGameState);
+
+      setGameState(newGameState);
+    }
+
     socket.on("rooms-list", handleRoomsList);
     socket.on("connect", handleConnect);
     socket.on("test-reply", handleTestReply);
     socket.on("matchmaking-status", handleMatchmakingStatus);
+    socket.on("game-state", handleGameState);
 
     socket.connect();
 
@@ -58,6 +85,7 @@ function App() {
       socket.off("connect", handleConnect);
       socket.off("test-reply", handleTestReply);
       socket.off("matchmaking-status", handleMatchmakingStatus);
+      socket.off("game-state", handleGameState);
 
       socket.disconnect();
     };
@@ -93,6 +121,67 @@ function App() {
           </p>
         </div>
       ))}
+
+      {gameState && (
+        <div>
+          <h2>Game State</h2>
+          <p>Status: {gameState.status}</p>
+          <p>Time: {gameState.timeRemaining}</p>
+          <p>
+            Seeker position: row {gameState.seeker.position.row}, col{" "}
+            {gameState.seeker.position.col}
+          </p>
+          <p>
+            Hider position: row {gameState.hider.position.row}, col{" "}
+            {gameState.hider.position.col}
+          </p>
+        </div>
+      )}
+
+      {gameState && (
+        <div>
+          <h2>Grid</h2>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(10, 40px)",
+              gap: "4px",
+            }}
+          >
+            {Array.from({ length: 100 }).map((_, index) => {
+              const row = Math.floor(index / 10);
+              const col = index % 10;
+
+              const isSeeker =
+                gameState.seeker.position.row === row &&
+                gameState.seeker.position.col === col;
+
+              const isHider =
+                gameState.hider.position.row === row &&
+                gameState.hider.position.col === col;
+
+              return (
+                <div
+                  key={`${row}-${col}`}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    border: "1px solid black",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {isSeeker && "S"}
+                  {isHider && "H"}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

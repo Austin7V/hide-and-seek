@@ -2,6 +2,27 @@ import { Injectable } from '@nestjs/common';
 
 type PlayerRole = 'seeker' | 'hider';
 
+type GameStatus = 'waiting' | 'running' | 'finished';
+
+type Position = {
+  row: number;
+  col: number;
+};
+
+type GameState = {
+  roomId: string;
+  status: GameStatus;
+  seeker: {
+    socketId: string;
+    position: Position;
+  };
+  hider: {
+    socketId: string;
+    position: Position;
+  };
+  timeRemaining: number;
+};
+
 type AddPlayerResult =
   | {
       status: 'waiting';
@@ -19,6 +40,7 @@ type AddPlayerResult =
 type Room = {
   id: string;
   players: string[];
+  gameState?: GameState;
 };
 
 @Injectable()
@@ -90,6 +112,28 @@ export class GameService {
 
     this.waitingRoomId = null;
 
+    const gameState: GameState = {
+      roomId,
+      status: 'running',
+      seeker: {
+        socketId: firstPlayerRole === 'seeker' ? firstPlayer : secondPlayer,
+        position: {
+          row: 0,
+          col: 0,
+        },
+      },
+      hider: {
+        socketId: firstPlayerRole === 'hider' ? firstPlayer : secondPlayer,
+        position: {
+          row: 9,
+          col: 9,
+        },
+      },
+      timeRemaining: 60,
+    };
+
+    room.gameState = gameState;
+
     return {
       status: 'started',
       roomId,
@@ -104,6 +148,12 @@ export class GameService {
         },
       ],
     };
+  }
+
+  getGameState(roomId: string) {
+    const room = this.rooms.get(roomId);
+
+    return room?.gameState;
   }
 
   getRoomsList() {

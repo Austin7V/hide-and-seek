@@ -43,6 +43,7 @@ type Room = {
   gameState?: GameState;
 };
 
+type Direction = 'up' | 'down' | 'left' | 'right';
 @Injectable()
 export class GameService {
   private rooms = new Map<string, Room>();
@@ -156,6 +157,59 @@ export class GameService {
     return room?.gameState;
   }
 
+  movePlayer(socketId: string, direction: Direction) {
+    const player = this.playerRooms.get(socketId);
+    if (!player) {
+      return null;
+    }
+
+    const room = this.rooms.get(player.roomId);
+    if (!room?.gameState) {
+      return null;
+    }
+
+    if (room.gameState.status !== 'running') {
+      return room.gameState;
+    }
+
+    const movingPlayer =
+      player.role === 'seeker' ? room.gameState.seeker : room.gameState.hider;
+
+    const nextPosition = {
+      row: movingPlayer.position.row,
+      col: movingPlayer.position.col,
+    };
+
+    if (direction === 'up') {
+      nextPosition.row--;
+    }
+
+    if (direction === 'down') {
+      nextPosition.row++;
+    }
+
+    if (direction === 'left') {
+      nextPosition.col--;
+    }
+
+    if (direction === 'right') {
+      nextPosition.col++;
+    }
+
+    const isOutsideGrid =
+      nextPosition.row < 0 ||
+      nextPosition.row > 9 ||
+      nextPosition.col < 0 ||
+      nextPosition.col > 9;
+
+    if (isOutsideGrid) {
+      return room.gameState;
+    }
+
+    movingPlayer.position = nextPosition;
+
+    return room.gameState;
+  }
   getRoomsList() {
     return Array.from(this.rooms.values()).map((room) => {
       return {

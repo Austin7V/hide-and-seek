@@ -72,11 +72,35 @@ function App() {
       setGameState(newGameState);
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!gameState || gameState.status !== "running") {
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        socket.emit("move", "up");
+      }
+
+      if (event.key === "ArrowDown") {
+        socket.emit("move", "down");
+      }
+
+      if (event.key === "ArrowLeft") {
+        socket.emit("move", "left");
+      }
+
+      if (event.key === "ArrowRight") {
+        socket.emit("move", "right");
+      }
+    }
+
     socket.on("rooms-list", handleRoomsList);
     socket.on("connect", handleConnect);
     socket.on("test-reply", handleTestReply);
     socket.on("matchmaking-status", handleMatchmakingStatus);
     socket.on("game-state", handleGameState);
+
+    window.addEventListener("keydown", handleKeyDown);
 
     socket.connect();
 
@@ -87,9 +111,11 @@ function App() {
       socket.off("matchmaking-status", handleMatchmakingStatus);
       socket.off("game-state", handleGameState);
 
+      window.removeEventListener("keydown", handleKeyDown);
+
       socket.disconnect();
     };
-  }, []);
+  }, [gameState]);
 
   return (
     <div>

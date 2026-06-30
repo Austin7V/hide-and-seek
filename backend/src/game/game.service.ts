@@ -105,4 +105,15 @@ export class GameService {
       ],
     };
   }
+
+  getRoomsList() {
+    return Array.from(this.rooms.values()).map((room) => {
+      return {
+        roomId: room.id,
+
+        status: room.players.length === 1 ? 'waiting' : 'started',
+        playersCount: room.players.length,
+      };
+    });
+  }
 }

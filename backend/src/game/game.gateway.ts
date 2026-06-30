@@ -19,6 +19,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private readonly gameService: GameService) {}
 
+  private broadcastRoomsList() {
+    const rooms = this.gameService.getRoomsList();
+    this.server.emit('rooms-list', rooms);
+  }
+
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
 
@@ -33,6 +38,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       console.log(`Player ${client.id} is waiting in ${result.roomId}`);
+
+      this.broadcastRoomsList();
+
       return;
     }
 

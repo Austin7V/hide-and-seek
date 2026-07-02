@@ -21,6 +21,7 @@ type GameState = {
     position: Position;
   };
   timeRemaining: number;
+  winner: PlayerRole | null;
 };
 
 type AddPlayerResult =
@@ -131,6 +132,7 @@ export class GameService {
         },
       },
       timeRemaining: 60,
+      winner: null,
     };
 
     room.gameState = gameState;

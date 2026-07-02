@@ -56,6 +56,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (gameState) {
       this.server.to(result.roomId).emit('game-state', gameState);
     }
+    this.gameService.startTimer(result.roomId, (updatedGameState) => {
+      this.server.to(result.roomId).emit('game-state', updatedGameState);
+    });
 
     console.log(`Game started in ${result.roomId}`);
 

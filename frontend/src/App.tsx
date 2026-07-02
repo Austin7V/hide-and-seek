@@ -36,6 +36,7 @@ type GameState = {
     position: Position;
   };
   timeRemaining: number;
+  winner: "seeker" | "hider" | null;
 };
 
 function App() {
@@ -153,6 +154,7 @@ function App() {
           <h2>Game State</h2>
           <p>Status: {gameState.status}</p>
           <p>Time: {gameState.timeRemaining}</p>
+          <p>Winner: {gameState.winner ?? "none"}</p>
           <p>
             Seeker position: row {gameState.seeker.position.row}, col{" "}
             {gameState.seeker.position.col}

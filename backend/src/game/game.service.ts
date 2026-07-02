@@ -21,6 +21,7 @@ type GameState = {
     position: Position;
   };
   timeRemaining: number;
+  winner: PlayerRole | null;
 };
 
 type AddPlayerResult =
@@ -41,6 +42,7 @@ type Room = {
   id: string;
   players: string[];
   gameState?: GameState;
+  timerId?: NodeJS.Timeout;
 };
 
 type Direction = 'up' | 'down' | 'left' | 'right';
@@ -112,7 +114,6 @@ export class GameService {
     });
 
     this.waitingRoomId = null;
-
     const gameState: GameState = {
       roomId,
       status: 'running',
@@ -131,6 +132,7 @@ export class GameService {
         },
       },
       timeRemaining: 60,
+      winner: null,
     };
 
     room.gameState = gameState;
@@ -155,6 +157,47 @@ export class GameService {
     const room = this.rooms.get(roomId);
 
     return room?.gameState;
+  }
+
+  startTimer(roomId: string, onTick: (gameState: GameState) => void) {
+    const room = this.rooms.get(roomId);
+
+    if (!room?.gameState) {
+      return;
+    }
+
+    if (room.timerId) {
+      return;
+    }
+
+    room.timerId = setInterval(() => {
+      const gameState = room.gameState;
+
+      if (!gameState) {
+        clearInterval(room.timerId);
+        room.timerId = undefined;
+        return;
+      }
+
+      if (gameState.status === 'finished') {
+        clearInterval(room.timerId);
+        room.timerId = undefined;
+        return;
+      }
+
+      gameState.timeRemaining--;
+
+      if (gameState.timeRemaining <= 0) {
+        gameState.timeRemaining = 0;
+        gameState.status = 'finished';
+        gameState.winner = 'hider';
+
+        clearInterval(room.timerId);
+        room.timerId = undefined;
+      }
+
+      onTick(gameState);
+    }, 1000);
   }
 
   movePlayer(socketId: string, direction: Direction) {
@@ -207,6 +250,17 @@ export class GameService {
     }
 
     movingPlayer.position = nextPosition;
+    const seekerPosition = room.gameState.seeker.position;
+    const hiderPosition = room.gameState.hider.position;
+
+    const seekerCaughtHider =
+      seekerPosition.row === hiderPosition.row &&
+      seekerPosition.col === hiderPosition.col;
+
+    if (seekerCaughtHider) {
+      room.gameState.status = 'finished';
+      room.gameState.winner = 'seeker';
+    }
 
     return room.gameState;
   }

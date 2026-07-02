@@ -113,7 +113,6 @@ export class GameService {
     });
 
     this.waitingRoomId = null;
-
     const gameState: GameState = {
       roomId,
       status: 'running',
@@ -209,6 +208,17 @@ export class GameService {
     }
 
     movingPlayer.position = nextPosition;
+    const seekerPosition = room.gameState.seeker.position;
+    const hiderPosition = room.gameState.hider.position;
+
+    const seekerCaughtHider =
+      seekerPosition.row === hiderPosition.row &&
+      seekerPosition.col === hiderPosition.col;
+
+    if (seekerCaughtHider) {
+      room.gameState.status = 'finished';
+      room.gameState.winner = 'seeker';
+    }
 
     return room.gameState;
   }
